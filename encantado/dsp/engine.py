@@ -17,6 +17,7 @@ from .effects import (EFFECTS, Compressor, Delay, DJFilter, EQ3, Limiter,
                       Reverb, Sidechain)
 
 MAX_VOICES_TOTAL = 96
+PREVIEW_CID = "__preview__"
 
 
 class _LiveVoice:
@@ -131,6 +132,24 @@ class Engine:
             if ch is None:
                 return
             self._spawn(ch, pitch, velocity, offset=0, off_at=None, preview=True)
+
+    def preview_buffer(self, buf, level: float = 0.9) -> None:
+        """Audition a decoded sample without giving it a channel."""
+        from .instruments import SAMPLER_PARAMS, SamplerVoice
+        from .params import defaults_for
+        if buf is None or len(buf) == 0:
+            return
+        params = defaults_for(SAMPLER_PARAMS)
+        params.update({"_buffer": buf, "level": level, "root_note": 60.0})
+        with self.lock:
+            self._voices = [lv for lv in self._voices if lv.cid != PREVIEW_CID]
+            self._voices.append(_LiveVoice(
+                SamplerVoice(params, 60, 1.0, self.sr), PREVIEW_CID, 0, None,
+                60, True))
+
+    def stop_preview(self) -> None:
+        with self.lock:
+            self._voices = [lv for lv in self._voices if lv.cid != PREVIEW_CID]
 
     def preview_off(self, cid: str, pitch: int) -> None:
         with self.lock:
@@ -336,6 +355,11 @@ class Engine:
                 rev_send += buf * ch.sends.reverb
             if ch.sends.delay > 1e-4:
                 dly_send += buf * ch.sends.delay
+
+        # voices with no channel of their own (sample auditions) go straight out
+        for cid, buf in by_chan.items():
+            if pr.channel(cid) is None:
+                master += buf
 
         # 4. send buses
         master += self.reverb_bus.process(rev_send)

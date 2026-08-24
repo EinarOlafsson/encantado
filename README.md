@@ -57,6 +57,39 @@ and limiter.
 
 ![Mixer](docs/mixer.png)
 
+## Using your own samples
+
+Encantado bundles no third-party audio, but it will happily play yours.
+
+**Library tab** — point it at a folder (or drag one onto the window) and it
+indexes everything underneath: WAV directly, and AIFF, FLAC, MP3, OGG and M4A
+through ffmpeg. Each file is classified from its name and length into kicks,
+claps, hats, percussion, bass, leads, chords, pads, vocals, FX and loops, and
+any BPM or musical key in the filename is picked up too. Click a sample to
+audition it, double-click to drop it onto a Sampler channel with its root note
+already set.
+
+Nothing is copied or moved — the index stores paths, so your packs stay exactly
+where they are.
+
+![Library](docs/library.png)
+
+**Packs tab** — a directory of the legitimate storefronts this genre buys from,
+organised by what you need (melodic house drums, organic percussion, plucks,
+pads, vocal chops, risers, Serum and Sylenth1 preset banks) plus a per-artist
+search. Click any entry and you get the vendors, ready-made search terms, and a
+*Locate folder on disk* button for packs you already own.
+
+![Packs](docs/pack-dialog.png)
+
+One thing stated plainly there and here: **no verified public list exists of the
+exact sample packs any of these artists used**, so Encantado does not invent
+one. The artist entries search each store directly, which is where an official
+pack appears if one exists.
+
+**Drag and drop** — audio files become Sampler channels, folders get indexed,
+and a `.ecp` file opens as a project.
+
 ## Making it sound like the genre
 
 **Sidechain.** The pumping in modern house is ducking triggered by the kick.
@@ -83,6 +116,7 @@ and a noise riser.
 | Ctrl+G | Generate |
 | Ctrl+S / Ctrl+O / Ctrl+N | Save, open, new |
 | Ctrl+E | Export WAV |
+| Ctrl+L | Add a folder of your own samples |
 | Ctrl+Z | Undo |
 | Z S X D C V G B H N J M | Play notes |
 | Q 2 W 3 E R 5 T 6 Y 7 U | Octave above |
@@ -100,7 +134,7 @@ code path used for playback, so the export matches what you heard.
 - `encantado/dsp/instruments.py`, `drums.py` — the voices
 - `encantado/dsp/effects.py` — reverb, delay, chorus, phaser, drive, dynamics, sidechain
 - `encantado/dsp/engine.py` — transport, step scheduler, buses, master chain
-- `encantado/core/` — project model and music theory
+- `encantado/core/` — project model, music theory, sample library, pack sourcing
 - `encantado/presets/` — pattern builders and the style templates
 - `encantado/ui/` — the Qt interface
 

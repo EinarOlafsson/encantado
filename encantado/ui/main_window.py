@@ -13,17 +13,18 @@ from PyQt6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBox,
 
 from ..audio.backend import AudioBackend
 from ..audio.wavio import write_wav
+from ..core.library import AUDIO_EXTS_HINT, SampleLibrary, describe
 from ..core.project import Project
 from ..dsp.engine import Engine
 from ..presets.templates import by_key, empty_project
 from . import theme as T
-from .browser import Browser
 from .channel_rack import ChannelRack
 from .generate import GenerateDialog
 from .inspector import Inspector
 from .mixer import Mixer
 from .piano_roll import PianoRoll
 from .playlist import Playlist
+from .side_panel import SidePanel
 from .transport import Transport
 
 APP_NAME = "Encantado"
@@ -81,9 +82,12 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(APP_NAME)
+        self.setAcceptDrops(True)
         self.resize(1620, 960)
         self.setMinimumSize(1120, 700)
 
+        self.library = SampleLibrary.load()
+        self._sample_cache: dict[str, object] = {}
         self.project = by_key("melodic").build()
         self.engine = Engine(self.project)
         self.engine.current_pattern = self.project.patterns[0].id
@@ -153,7 +157,7 @@ class MainWindow(QMainWindow):
         cl.addLayout(self.tabs_bar)
         cl.addWidget(self.stack, 1)
 
-        self.browser = Browser()
+        self.browser = SidePanel(self.library)
         bwrap = QWidget()
         bwrap.setObjectName("Panel")
         bl = QVBoxLayout(bwrap)
@@ -190,6 +194,8 @@ class MainWindow(QMainWindow):
         self._act(f, "Save &As…", "Ctrl+Shift+S", lambda: self.save_project(True))
         f.addSeparator()
         self._act(f, "&Export WAV…", "Ctrl+E", self.export_wav)
+        f.addSeparator()
+        self._act(f, "Add sample &folder…", "Ctrl+L", self.add_sample_folder)
         f.addSeparator()
         self._act(f, "&Quit", "Ctrl+Q", self.close)
 
@@ -253,6 +259,9 @@ class MainWindow(QMainWindow):
         self.browser.templateChosen.connect(self.load_template)
         self.browser.instrumentChosen.connect(self.add_channel)
         self.browser.newProject.connect(self.new_project)
+        self.browser.previewRequested.connect(self.preview_sample)
+        self.browser.sampleActivated.connect(self.add_sample_channel)
+        self.browser.packFolderLocated.connect(self.pack_located)
 
     # -- project lifecycle ---------------------------------------------------
     def load_project(self, project: Project, reset_path: bool = False) -> None:
@@ -603,6 +612,112 @@ class MainWindow(QMainWindow):
             self.status.showMessage("Generated into "
                                     f"{pat.name}", 2500)
 
+    # -- samples -------------------------------------------------------------
+    def _decode(self, path: str):
+        buf = self._sample_cache.get(path)
+        if buf is None:
+            from ..audio.wavio import read_audio
+            try:
+                buf, _sr = read_audio(path)
+            except Exception as exc:
+                self.status.showMessage(f"Could not read {os.path.basename(path)}: "
+                                        f"{exc}", 8000)
+                return None
+            if len(self._sample_cache) > 48:
+                self._sample_cache.clear()
+            self._sample_cache[path] = buf
+        return buf
+
+    def preview_sample(self, path: str) -> None:
+        buf = self._decode(path)
+        if buf is not None:
+            self.engine.preview_buffer(buf)
+            self.status.showMessage(os.path.basename(path), 3000)
+
+    def add_sample_channel(self, path: str) -> None:
+        buf = self._decode(path)
+        if buf is None:
+            return
+        self._snapshot()
+        info = describe(path)
+        ch = self.project.add_channel("sampler", info.name[:26] or "Sample")
+        ch.sample_path = path
+        ch.params["_buffer"] = buf
+        if info.root >= 0:
+            ch.params["root_note"] = float(info.root)
+        if info.loop:
+            ch.params["loop"] = 1.0
+        self._rebuild_views()
+        self.select_channel(ch.id)
+        self.status.showMessage(
+            f"Added {info.name} as a Sampler channel"
+            + (f" (root {info.root})" if info.root >= 0 else ""), 4000)
+
+    def add_sample_folder(self) -> None:
+        self.browser.show_tab(1)
+        self.browser.library_panel.add_folder()
+
+    def pack_located(self, key: str, folder: str) -> None:
+        if key:
+            self.library.owned_packs[key] = folder
+        n = self.browser.library_panel.scan_folder(folder)
+        self.browser.refresh_library()
+        self.status.showMessage(f"Indexed {n} samples from "
+                                f"{os.path.basename(folder)}", 5000)
+
+    # -- drag and drop -------------------------------------------------------
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasUrls():
+            e.acceptProposedAction()
+
+    dragMoveEvent = dragEnterEvent
+
+    def dropEvent(self, e):
+        paths = [u.toLocalFile() for u in e.mimeData().urls() if u.isLocalFile()]
+        if not paths:
+            return
+        e.acceptProposedAction()
+
+        projects = [p for p in paths if p.lower().endswith(".ecp")]
+        if projects:
+            if self._confirm_discard():
+                try:
+                    self.load_project(Project.load(projects[0]))
+                    self.path = projects[0]
+                    self._update_title()
+                    self.status.showMessage(
+                        f"Opened {os.path.basename(projects[0])}", 4000)
+                except Exception as exc:
+                    QMessageBox.critical(self, APP_NAME, f"Could not open:\n{exc}")
+            return
+
+        folders = [p for p in paths if os.path.isdir(p)]
+        files = [p for p in paths if os.path.isfile(p)
+                 and p.lower().endswith(AUDIO_EXTS_HINT)]
+
+        for folder in folders:
+            self.browser.library_panel.scan_folder(folder)
+        if folders:
+            self.browser.show_tab(1)
+            self.browser.refresh_library()
+
+        for f in files[:16]:
+            self.add_sample_channel(f)
+        if files:
+            known = {s.path for s in self.library.samples}
+            added = False
+            for f in files:
+                if f not in known:
+                    self.library.samples.append(describe(f))
+                    added = True
+            if added:
+                self.library.save()
+                self.browser.refresh_library()
+        if not folders and not files:
+            self.status.showMessage("Nothing there Encantado can read — drop "
+                                    "audio files, a folder, or a .ecp project",
+                                    5000)
+
     # -- undo / dirty --------------------------------------------------------
     def _snapshot(self) -> None:
         self._undo.append(self.project.to_dict())
@@ -657,6 +772,8 @@ class MainWindow(QMainWindow):
             "ctrl-drag up/down to set velocity.\n\n"
             "Piano roll: drag to draw, drag the right edge to resize,\n"
             "right-click to erase, alt to snap to the key.\n\n"
+            "Ctrl+L — add a folder of your own samples\n"
+            "Drag audio files, folders or .ecp projects onto the window.\n\n"
             "Play notes from the keyboard: Z S X D C V G B H N J M\n"
             "and Q 2 W 3 E R 5 T 6 Y 7 U for the octave above.\n"
             "[ and ] shift the octave."))
@@ -726,4 +843,8 @@ class MainWindow(QMainWindow):
             return
         self.timer.stop()
         self.backend.stop()
+        try:
+            self.library.save()
+        except Exception:
+            pass
         e.accept()

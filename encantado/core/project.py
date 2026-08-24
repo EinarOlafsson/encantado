@@ -86,6 +86,19 @@ class Channel:
             base.update(self.params)
             self.params = base
 
+    def load_sample(self, path: str) -> bool:
+        """Decode `path` into this channel. Returns False if it could not be read."""
+        from ..audio.wavio import read_audio
+        try:
+            buf, _sr = read_audio(path)
+        except Exception:
+            self.sample_path = path
+            self.params.pop("_buffer", None)
+            return False
+        self.sample_path = path
+        self.params["_buffer"] = buf
+        return True
+
     @property
     def drum(self) -> bool:
         return is_drum(self.instrument)
@@ -93,6 +106,10 @@ class Channel:
     def to_dict(self) -> dict:
         d = asdict(self)
         d["sends"] = asdict(self.sends)
+        # runtime-only entries (decoded sample buffers) never go in the file --
+        # the path is stored instead and the audio is reloaded on open
+        d["params"] = {k: v for k, v in self.params.items()
+                       if not k.startswith("_")}
         return d
 
     @staticmethod
@@ -320,6 +337,9 @@ class Project:
             n_lanes=int(d.get("n_lanes", 8)),
         )
         pr.channels = [Channel.from_dict(c) for c in d.get("channels", [])]
+        for ch in pr.channels:                      # re-decode any samples
+            if ch.instrument == "sampler" and ch.sample_path:
+                ch.load_sample(ch.sample_path)
         pr.patterns = [Pattern.from_dict(p) for p in d.get("patterns", [])]
         pr.arrangement = [Clip.from_dict(c) for c in d.get("arrangement", [])]
         master = Project().master

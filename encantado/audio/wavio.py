@@ -63,3 +63,66 @@ def read_wav(path: str, target_sr: int = 44100) -> tuple[np.ndarray, int]:
         frac = (idx - i0).astype(np.float32)[:, None]
         a = a[i0] * (1 - frac) + a[i1] * frac
     return np.ascontiguousarray(a, dtype=np.float32), target_sr
+
+
+# --------------------------------------------------------------------------
+# Anything that is not a WAV goes through ffmpeg, when it is available
+# --------------------------------------------------------------------------
+import os
+import shutil
+import subprocess
+import tempfile
+
+AUDIO_EXTS = (".wav", ".wave", ".aif", ".aiff", ".flac", ".mp3", ".ogg",
+              ".m4a", ".aac", ".wma", ".opus")
+
+
+def ffmpeg_available() -> bool:
+    return shutil.which("ffmpeg") is not None
+
+
+def read_audio(path: str, target_sr: int = 44100) -> tuple[np.ndarray, int]:
+    """Read any common audio file. WAV is decoded directly; everything else is
+    converted with ffmpeg if it is installed."""
+    if os.path.splitext(path)[1].lower() in (".wav", ".wave"):
+        try:
+            return read_wav(path, target_sr)
+        except Exception:
+            pass                      # fall through: some 'wav' files are not
+    if not ffmpeg_available():
+        raise RuntimeError(
+            f"{os.path.splitext(path)[1] or 'This format'} needs ffmpeg to import. "
+            "Install ffmpeg, or convert the file to WAV.")
+    tmp = tempfile.mktemp(suffix=".wav")
+    try:
+        proc = subprocess.run(
+            ["ffmpeg", "-v", "error", "-y", "-i", path,
+             "-ac", "2", "-ar", str(target_sr), "-c:a", "pcm_s16le", tmp],
+            capture_output=True, timeout=120)
+        if proc.returncode != 0 or not os.path.exists(tmp):
+            raise RuntimeError(proc.stderr.decode("utf-8", "replace")[:300]
+                               or "ffmpeg could not decode this file")
+        return read_wav(tmp, target_sr)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+def probe_duration(path: str) -> float:
+    """Cheap duration read for the library scanner (WAV without full decode)."""
+    if os.path.splitext(path)[1].lower() in (".wav", ".wave"):
+        try:
+            with wave.open(path, "rb") as fh:
+                return fh.getnframes() / float(fh.getframerate() or 44100)
+        except Exception:
+            return 0.0
+    if not shutil.which("ffprobe"):
+        return 0.0
+    try:
+        out = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=nw=1:nk=1", path],
+            capture_output=True, timeout=20)
+        return float(out.stdout.decode().strip() or 0.0)
+    except Exception:
+        return 0.0
