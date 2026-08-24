@@ -113,6 +113,7 @@ class Effect:
         if params:
             self.p.update(params)
         self.enabled = True
+        self.wet_only = False        # send-bus mode: return only the wet signal
         self._build()
 
     def _build(self) -> None:
@@ -194,6 +195,8 @@ class Reverb(Effect):
             mid = (wet[:, 0] + wet[:, 1]) * 0.5
             side = (wet[:, 0] - wet[:, 1]) * 0.5 * w
             wet = np.stack((mid + side, mid - side), axis=-1)
+        if self.wet_only:
+            return (wet * (mix * 3.2)).astype(np.float32)
         return (x * (1.0 - mix * 0.35) + wet * (mix * 3.2)).astype(np.float32)
 
 
@@ -253,6 +256,8 @@ class Delay(Effect):
             wr_r = x[:, 1] * 0.7 + taps[:, 1] * fb
         self.lines[0].write_block(np.clip(wr_l, -8, 8).astype(np.float32))
         self.lines[1].write_block(np.clip(wr_r, -8, 8).astype(np.float32))
+        if self.wet_only:
+            return (taps * self.p["mix"] * 1.4).astype(np.float32)
         return (x + taps * self.p["mix"] * 1.4).astype(np.float32)
 
 
