@@ -101,6 +101,15 @@ search. Click any entry and you get the vendors, ready-made search terms, and a
 
 ![Packs](https://raw.githubusercontent.com/EinarOlafsson/encantado/main/docs/pack-dialog.png)
 
+The **Free** category is first for a reason. For this music the leads, plucks,
+pads and basses are synthesised rather than sampled, so a free *synth* gets you
+closer than any free sample pack — Vital, Surge XT, Dexed and TAL-NoiseMaker
+cover most of it. Alongside those it lists genuinely free, properly licensed
+sample sources: Spitfire LABS, Pianobook, Freesound, 99Sounds, MusicRadar's
+SampleRadar, BBC Sound Effects and Komplete Start. Licences differ — Freesound
+varies per file and the BBC library is personal/educational — and the app says
+so on each entry.
+
 One thing stated plainly there and here: **no verified public list exists of the
 exact sample packs any of these artists used**, so Encantado does not invent
 one. The artist entries search each store directly, which is where an official

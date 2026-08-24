@@ -72,15 +72,56 @@ VENDORS: tuple[Vendor, ...] = (
            "Emulations of the classic analogue hardware behind a lot of the "
            "French-touch lineage."),
     Vendor("freesound", "Freesound", "https://freesound.org", "free",
-           "Community library, largely Creative Commons. Check each file's "
-           "licence — some require attribution.",
+           "Huge community library. Licences vary per file — CC0 needs nothing, "
+           "CC-BY needs credit, and some are non-commercial. Check each one.",
            "https://freesound.org/search/?q={q}"),
     Vendor("labs", "Spitfire LABS", "https://labs.spitfireaudio.com", "free",
-           "Free, high quality, and licensed for commercial use. Strings, "
-           "pianos, choirs and textures."),
-    Vendor("cymatics", "Cymatics", "https://cymatics.fm/pages/free-download-vault",
-           "free", "Regularly gives away large free sample packs aimed at "
-           "electronic producers."),
+           "Free, properly licensed for commercial use, and genuinely good. "
+           "Strings, soft pianos, choir, textures — the breakdown palette."),
+    Vendor("pianobook", "Pianobook", "https://www.pianobook.co.uk", "free",
+           "Community-made sampled instruments, free. Characterful pianos, "
+           "found-sound textures and oddities."),
+    Vendor("99sounds", "99Sounds", "https://99sounds.org", "free",
+           "Curated free packs: drum machines, percussion, cinematic hits."),
+    Vendor("cymatics", "Cymatics", "https://cymatics.fm", "free",
+           "Regularly gives away large packs aimed at electronic producers. "
+           "Email signup required."),
+    Vendor("komplete_start", "Komplete Start", "https://www.native-instruments.com",
+           "free",
+           "Native Instruments' free bundle — synths, sampled instruments and "
+           "loops. Search their site for Komplete Start."),
+    Vendor("musicradar", "MusicRadar SampleRadar",
+           "https://www.musicradar.com", "free",
+           "A long-running archive of free, royalty-free packs including house "
+           "and techno kits. Search the site for SampleRadar."),
+    Vendor("bbc", "BBC Sound Effects", "https://sound-effects.bbcrewind.co.uk",
+           "free",
+           "Thousands of field recordings. The RemArc licence covers personal, "
+           "educational and research use — read it before commercial release."),
+    Vendor("looperman", "Looperman", "https://www.looperman.com", "free",
+           "Free loops uploaded by users. Quality varies and most require "
+           "crediting the uploader — check each entry's terms."),
+
+    # --- free instruments: for this music these matter more than samples ---
+    Vendor("vital", "Vital (free synth)", "https://vital.audio", "synth",
+           "Free wavetable synth in the same class as Serum. This is the single "
+           "most useful free download for supersaws, plucks and growling basses.",
+           ),
+    Vendor("surge", "Surge XT (free synth)",
+           "https://surge-synthesizer.github.io", "synth",
+           "Free and open source, and very deep. Good at plucks, pads and "
+           "everything in between."),
+    Vendor("dexed", "Dexed (free FM synth)", "https://asb2m10.github.io/dexed/",
+           "synth",
+           "Free DX7 emulation. The classic FM electric pianos and bells that "
+           "sit under piano-house breakdowns."),
+    Vendor("tal", "TAL-NoiseMaker (free synth)",
+           "https://tal-software.com", "synth",
+           "Free subtractive synth. Fast for plucks, stabs and analogue basses."),
+    Vendor("decent", "Decent Sampler (free)", "https://www.decentsamples.com",
+           "free",
+           "Free sampler player with a large catalogue of free libraries, "
+           "including many from Pianobook."),
 )
 
 
@@ -202,14 +243,53 @@ PACK_GUIDES: tuple[PackGuide, ...] = (
 )
 
 
+FREE_PICKS: tuple[PackGuide, ...] = (
+    PackGuide("free-synths", "Free synths (start here)", "Free",
+              "For this genre the leads, plucks, pads and basses are "
+              "synthesised, not sampled — so a free synth gets you closer than "
+              "any free sample pack. Vital is the one to download first.",
+              ("vital wavetable synth", "surge xt", "dexed dx7"),
+              ("vital", "surge", "dexed", "tal"), "supersaw / pluck / bass"),
+    PackGuide("free-breakdown", "Free strings, pianos and choir", "Free",
+              "Spitfire LABS is free, licensed for commercial use and genuinely "
+              "high quality — the fastest way to a convincing breakdown.",
+              ("labs strings", "labs soft piano", "labs choir"),
+              ("labs", "pianobook", "decent"), "pad / chords"),
+    PackGuide("free-perc", "Free organic percussion", "Free",
+              "Congas, shakers, rims, wood and found sounds — the layer that "
+              "makes the French melodic-house records breathe.",
+              ("conga", "shaker", "percussion loop", "hand percussion"),
+              ("freesound", "musicradar", "99sounds"), "perc"),
+    PackGuide("free-drums", "Free drum machines and kits", "Free",
+              "808/909-lineage one-shots and house kits. Encantado synthesises "
+              "its own, but real one-shots layer well underneath them.",
+              ("drum machine samples", "house drum kit", "analog drums"),
+              ("99sounds", "musicradar", "komplete_start"), "kick / clap / hat"),
+    PackGuide("free-texture", "Free textures and field recordings", "Free",
+              "Atmospheres, room tone and noise beds. A quiet field recording "
+              "under a breakdown does more than another synth layer.",
+              ("field recording", "atmosphere", "room tone", "rain"),
+              ("freesound", "bbc", "labs"), "sampler"),
+    PackGuide("free-vocal", "Free vocal material", "Free",
+              "The category where licensing matters most. Prefer CC0, and read "
+              "the terms before you release anything commercially.",
+              ("vocal chop", "acapella cc0", "vocal phrase"),
+              ("freesound", "looperman", "cymatics"), "sampler"),
+)
+
+
+def all_guides() -> tuple[PackGuide, ...]:
+    return FREE_PICKS + PACK_GUIDES
+
+
 def guide(key: str) -> PackGuide | None:
-    for g in PACK_GUIDES:
+    for g in all_guides():
         if g.key == key:
             return g
     return None
 
 
-CATEGORIES = ("Drums", "Bass", "Melodic", "Vocals", "FX", "Presets", "Free")
+CATEGORIES = ("Free", "Drums", "Bass", "Melodic", "Vocals", "FX", "Presets")
 
 DISCLAIMER = (
     "Encantado bundles no third-party audio. These are pointers to the rights "

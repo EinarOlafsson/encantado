@@ -9,8 +9,8 @@ from PyQt6.QtCore import QUrl
 from PyQt6.QtWidgets import (QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel,
                              QPushButton, QScrollArea, QVBoxLayout, QWidget)
 
-from ..core.packs import (ARTISTS, CATEGORIES, DISCLAIMER, PACK_GUIDES, Artist,
-                          PackGuide, vendor)
+from ..core.packs import (ARTISTS, CATEGORIES, DISCLAIMER, Artist, PackGuide,
+                          all_guides, vendor)
 from . import theme as T
 
 
@@ -215,8 +215,9 @@ class PacksPanel(QWidget):
 
         intro = QLabel(
             "Encantado ships no third-party audio. These are pointers to the "
-            "rights holders' own stores — and a place to plug in packs you "
-            "already own.")
+            "rights holders' own sites — and a place to plug in packs you "
+            "already own. Everything under Free is a legitimate free download; "
+            "check each one's licence before releasing commercially.")
         intro.setWordWrap(True)
         intro.setObjectName("Faint")
         self.lay.addWidget(intro)
@@ -234,14 +235,16 @@ class PacksPanel(QWidget):
             self.lay.addWidget(card)
 
         for cat in CATEGORIES:
-            guides = [g for g in PACK_GUIDES if g.category == cat]
+            guides = [g for g in all_guides() if g.category == cat]
             if not guides:
                 continue
             header(cat)
             for g in guides:
                 owned = self.library.owned_packs.get(g.key, "")
-                badge = "OWNED" if owned and os.path.isdir(owned) else ""
-                card = _Card(g.title, g.blurb, T.ACCENT, badge)
+                badge = ("OWNED" if owned and os.path.isdir(owned)
+                         else ("FREE" if g.category == "Free" else ""))
+                colour = T.GREEN if g.category == "Free" else T.ACCENT
+                card = _Card(g.title, g.blurb, colour, badge)
                 card.clicked.connect(lambda x=g: self._guide(x))
                 self.lay.addWidget(card)
 
