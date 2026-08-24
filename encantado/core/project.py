@@ -295,7 +295,7 @@ class Project:
     # -- persistence ---------------------------------------------------------
     def to_dict(self) -> dict:
         return {
-            "format": "neonrack-project",
+            "format": "encantado-project",
             "version": 1,
             "name": self.name,
             "bpm": self.bpm,
