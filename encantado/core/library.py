@@ -8,6 +8,8 @@ from __future__ import annotations
 import json
 import os
 import re
+
+import numpy as np
 from dataclasses import asdict, dataclass, field
 
 from ..audio.wavio import AUDIO_EXTS, probe_duration
@@ -44,8 +46,8 @@ _LOOP_WORDS = ("loop", "groove", "beat", "riff", "seq")
 _BPM_RE = re.compile(r"(?:^|[_\-. ])(\d{2,3})\s*(?:bpm)?(?:[_\-. ]|$)", re.I)
 _BPM_TAGGED_RE = re.compile(r"(\d{2,3})\s*bpm", re.I)
 _KEY_RE = re.compile(
-    r"(?:^|[_\-. ])([A-G])(#|b|s(?:harp)?)?[ _\-]?(min(?:or)?|maj(?:or)?|m)?"
-    r"(?:[_\-. ]|$)")
+    r"(?:^|[_\-. ])([A-G])(#|b|s(?:harp)?)?([0-8])?[ _\-]?"
+    r"(min(?:or)?|maj(?:or)?|m)?(?:[_\-. ]|$)")
 _NOTE_PC = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 
 
@@ -106,16 +108,23 @@ def detect_bpm(name: str) -> float:
 
 
 def detect_root(name: str) -> int:
-    """Return a MIDI note in octave 4 for a key found in the filename, else -1."""
+    """MIDI note for a key in the filename, honouring an octave if one is given.
+
+    `Sub_Bass_A1.wav` is worth more than `Sub_Bass_A.wav`: the octave means the
+    sampler plays it at the pitch it was recorded at instead of guessing.
+    """
     stem = os.path.splitext(os.path.basename(name))[0]
     m = _KEY_RE.search(f" {stem} ")
     if not m:
         return -1
-    letter, accidental, _quality = m.groups()
+    letter, accidental, octave, _quality = m.groups()
     pc = _NOTE_PC[letter.upper()]
     if accidental:
         pc += 1 if accidental.lower().startswith(("#", "s")) else -1
-    return 60 + (pc % 12)
+    pc %= 12
+    if octave is not None:
+        return int(np.clip(12 * (int(octave) + 1) + pc, 0, 127))
+    return 60 + pc
 
 
 def describe(path: str, duration: float | None = None) -> Sample:

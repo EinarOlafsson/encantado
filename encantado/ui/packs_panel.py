@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel,
 
 from ..core.packs import (ARTISTS, CATEGORIES, DISCLAIMER, Artist, PackGuide,
                           all_guides, vendor)
+from ..presets.kits import KITS
 from . import theme as T
 
 
@@ -189,6 +190,7 @@ class PacksPanel(QWidget):
     """Browse pack guides and artist searches."""
 
     folderLocated = pyqtSignal(str, str)     # (guide key, folder)
+    buildKit = pyqtSignal(str)               # kit key
 
     def __init__(self, library, parent=None):
         super().__init__(parent)
@@ -227,6 +229,25 @@ class PacksPanel(QWidget):
             lb.setObjectName("Title")
             self.lay.addSpacing(5)
             self.lay.addWidget(lb)
+
+        header("One-click kits")
+        note = QLabel(
+            "Built on your machine by Encantado's own synthesis engine — no "
+            "download, no account, no licence to read. A few seconds each, and "
+            "they land in your Library ready to use.")
+        note.setWordWrap(True)
+        note.setObjectName("Faint")
+        self.lay.addWidget(note)
+        for k in KITS:
+            card = _Card(k.name, f"{k.total} samples · {k.blurb}", T.ACCENT_4,
+                         "BUILD")
+            card.clicked.connect(lambda key=k.key: self.buildKit.emit(key))
+            self.lay.addWidget(card)
+        allc = _Card("Build every kit",
+                     f"All {sum(k.total for k in KITS)} samples across "
+                     f"{len(KITS)} kits in one go.", T.ACCENT_4, "BUILD")
+        allc.clicked.connect(lambda: self.buildKit.emit("*"))
+        self.lay.addWidget(allc)
 
         header("By Artist")
         for a in ARTISTS:

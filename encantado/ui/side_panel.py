@@ -18,6 +18,7 @@ class SidePanel(QWidget):
     previewRequested = pyqtSignal(str)
     sampleActivated = pyqtSignal(str)
     packFolderLocated = pyqtSignal(str, str)
+    buildKit = pyqtSignal(str)
 
     def __init__(self, library: SampleLibrary, parent=None):
         super().__init__(parent)
@@ -33,6 +34,7 @@ class SidePanel(QWidget):
         self.library_panel.previewRequested.connect(self.previewRequested)
         self.library_panel.sampleActivated.connect(self.sampleActivated)
         self.packs.folderLocated.connect(self.packFolderLocated)
+        self.packs.buildKit.connect(self.buildKit)
 
         self.stack = QStackedWidget()
         for w in (self.browser, self.library_panel, self.packs):

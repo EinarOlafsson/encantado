@@ -101,6 +101,24 @@ search. Click any entry and you get the vendors, ready-made search terms, and a
 
 ![Packs](https://raw.githubusercontent.com/EinarOlafsson/encantado/main/docs/pack-dialog.png)
 
+### One-click kits
+
+The top of the Packs tab has six kits that build themselves on your machine
+from Encantado's own synthesis engine — 151 samples in total, a second or two
+each. No download, no account, no licence to read, and they land in your
+Library already classified, with melodic ones named so their root note is
+detected (`Pluck_C3_02.wav`, `Sub_A1_01.wav`).
+
+They are worth having as raw material even though the app synthesises the same
+sounds live: a rendered one-shot can be layered, chopped, reversed and fed to
+the generation studio, which a live voice cannot.
+
+Everything else has to stay a link rather than a button, and for a reason worth
+stating: Spitfire LABS needs its own installer, Cymatics and 99Sounds need an
+email signup, and Freesound needs a personal API key. None of those can be
+automated without circumventing the terms you agreed to when you got the
+material, so Encantado opens the page and leaves the download to you.
+
 The **Free** category is first for a reason. For this music the leads, plucks,
 pads and basses are synthesised rather than sampled, so a free *synth* gets you
 closer than any free sample pack — Vital, Surge XT, Dexed and TAL-NoiseMaker

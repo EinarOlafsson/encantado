@@ -270,6 +270,7 @@ class MainWindow(QMainWindow):
         self.browser.previewRequested.connect(self.preview_sample)
         self.browser.sampleActivated.connect(self.add_sample_channel)
         self.browser.packFolderLocated.connect(self.pack_located)
+        self.browser.buildKit.connect(self.build_kit)
 
         self.analyze.previewAudio.connect(self.preview_audio)
         self.analyze.createProject.connect(self.project_from_recipe)
@@ -670,6 +671,52 @@ class MainWindow(QMainWindow):
     def add_sample_folder(self) -> None:
         self.browser.show_tab(1)
         self.browser.library_panel.add_folder()
+
+    def build_kit(self, kit_key: str) -> None:
+        """Render a sample kit locally and index it, in one step."""
+        from ..presets.kits import (KITS, default_kit_root, kit as get_kit,
+                                    render_kit, safe_dirname)
+        kits = list(KITS) if kit_key == "*" else [k for k in [get_kit(kit_key)] if k]
+        if not kits:
+            return
+        root = default_kit_root()
+        try:
+            os.makedirs(root, exist_ok=True)
+        except OSError as exc:
+            QMessageBox.critical(self, APP_NAME, f"Could not create {root}:\n{exc}")
+            return
+        total = sum(k.total for k in kits)
+        dlg = QProgressDialog(f"Building {total} samples…", "Cancel", 0, 100, self)
+        dlg.setWindowTitle("Build kit")
+        dlg.setWindowModality(Qt.WindowModality.WindowModal)
+        dlg.setMinimumDuration(0)
+        made = 0
+        try:
+            for k in kits:
+                out = os.path.join(root, safe_dirname(k.name))
+
+                def progress(frac, name, k=k, base=made):
+                    dlg.setValue(int((base + frac * k.total) / total * 100))
+                    dlg.setLabelText(f"{k.name}\n{name}")
+                    QApplication.processEvents()
+                    return not dlg.wasCanceled()
+
+                paths = render_kit(k, out, progress)
+                made += k.total
+                if paths:
+                    self.library.scan(out)
+                if dlg.wasCanceled():
+                    break
+        except Exception as exc:
+            QMessageBox.critical(self, APP_NAME, f"Kit build failed:\n{exc}")
+            return
+        finally:
+            dlg.close()
+        self.library.save()
+        self.browser.refresh_library()
+        self.browser.show_tab(1)
+        self.status.showMessage(
+            f"Built {made} samples into {root} and indexed them", 8000)
 
     def pack_located(self, key: str, folder: str) -> None:
         if key:
