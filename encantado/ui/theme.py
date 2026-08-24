@@ -145,6 +145,13 @@ QMenu::separator {{ height: 1px; background: {BORDER}; margin: 5px 8px; }}
 QMenuBar {{ background: {BG_PANEL}; border-bottom: 1px solid {BORDER}; }}
 QMenuBar::item {{ padding: 6px 11px; background: transparent; }}
 QMenuBar::item:selected {{ background: {BG_PANEL_2}; }}
+QListWidget, QTreeWidget, QTableWidget {{
+    background: {BG_INPUT}; border: 1px solid {BORDER}; border-radius: 5px;
+    outline: none;
+}}
+QListWidget::item, QTreeWidget::item {{ padding: 3px 5px; border-radius: 3px; }}
+QListWidget::item:selected, QTreeWidget::item:selected {{ background: {ACCENT_3}; }}
+QListWidget::item:hover, QTreeWidget::item:hover {{ background: {BG_PANEL_2}; }}
 QScrollArea {{ border: none; background: {BG_PANEL}; }}
 QScrollArea > QWidget > QWidget {{ background: transparent; }}
 QScrollArea > QWidget {{ background: {BG_PANEL}; }}

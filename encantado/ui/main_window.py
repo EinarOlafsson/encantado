@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 
+import numpy as np
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBox,
@@ -24,7 +25,9 @@ from .inspector import Inspector
 from .mixer import Mixer
 from .piano_roll import PianoRoll
 from .playlist import Playlist
+from .analyze_panel import AnalyzePanel
 from .side_panel import SidePanel
+from .studio_panel import StudioPanel
 from .transport import Transport
 
 APP_NAME = "Encantado"
@@ -124,7 +127,8 @@ class MainWindow(QMainWindow):
         self.tabs_bar.setContentsMargins(0, 0, 0, 0)
         self.tabs_bar.setSpacing(2)
         self.tab_buttons: list[QPushButton] = []
-        for i, name in enumerate(("Channel Rack", "Piano Roll", "Playlist", "Mixer")):
+        for i, name in enumerate(("Channel Rack", "Piano Roll", "Playlist",
+                                  "Mixer", "Analyse", "Studio")):
             b = QPushButton(name)
             b.setObjectName("Tab")
             b.setCheckable(True)
@@ -141,8 +145,11 @@ class MainWindow(QMainWindow):
         self.roll = PianoRoll()
         self.playlist = Playlist()
         self.mixer = Mixer()
+        self.analyze = AnalyzePanel()
+        self.studio = StudioPanel()
         self.stack = QStackedWidget()
-        for w in (self.rack, self.roll, self.playlist, self.mixer):
+        for w in (self.rack, self.roll, self.playlist, self.mixer,
+                  self.analyze, self.studio):
             holder = QWidget()
             holder.setObjectName("Panel")
             hl = QVBoxLayout(holder)
@@ -206,7 +213,8 @@ class MainWindow(QMainWindow):
         self._act(e, "Clear pattern", "", self.clear_pattern)
 
         v = m.addMenu("&View")
-        for i, name in enumerate(("Channel Rack", "Piano Roll", "Playlist", "Mixer")):
+        for i, name in enumerate(("Channel Rack", "Piano Roll", "Playlist",
+                                  "Mixer", "Analyse", "Studio")):
             self._act(v, name, f"F{i + 1}", lambda k=i: self.show_tab(k))
 
         a = m.addMenu("&Audio")
@@ -262,6 +270,12 @@ class MainWindow(QMainWindow):
         self.browser.previewRequested.connect(self.preview_sample)
         self.browser.sampleActivated.connect(self.add_sample_channel)
         self.browser.packFolderLocated.connect(self.pack_located)
+
+        self.analyze.previewAudio.connect(self.preview_audio)
+        self.analyze.createProject.connect(self.project_from_recipe)
+        self.analyze.sendHits.connect(self.hits_to_library)
+        self.studio.previewAudio.connect(self.preview_audio)
+        self.studio.addSample.connect(self.add_audio_channel)
 
     # -- project lifecycle ---------------------------------------------------
     def load_project(self, project: Project, reset_path: bool = False) -> None:
@@ -665,6 +679,62 @@ class MainWindow(QMainWindow):
         self.status.showMessage(f"Indexed {n} samples from "
                                 f"{os.path.basename(folder)}", 5000)
 
+    # -- analysis and generation --------------------------------------------
+    def preview_audio(self, audio) -> None:
+        if audio is None:
+            return
+        a = np.asarray(audio, dtype=np.float32)
+        if a.ndim == 1:
+            a = np.stack([a, a], axis=-1)
+        self.engine.preview_buffer(np.ascontiguousarray(a))
+
+    def add_audio_channel(self, audio, name: str) -> None:
+        a = np.asarray(audio, dtype=np.float32)
+        if a.ndim == 1:
+            a = np.stack([a, a], axis=-1)
+        self._snapshot()
+        ch = self.project.add_channel("sampler", name[:26])
+        ch.params["_buffer"] = np.ascontiguousarray(a)
+        self._rebuild_views()
+        self.select_channel(ch.id)
+        self.status.showMessage(f"Added {name} as a Sampler channel", 4000)
+
+    def project_from_recipe(self, recipe) -> None:
+        if not self._confirm_discard():
+            return
+        from ..analysis.recipe import recipe_to_project
+        try:
+            pr = recipe_to_project(recipe)
+        except Exception as exc:
+            QMessageBox.critical(self, APP_NAME, f"Could not build a project:\n{exc}")
+            return
+        self.load_project(pr, reset_path=True)
+        self.show_tab(0)
+        self.status.showMessage(
+            f"Built a project at {pr.bpm:.1f} BPM in {recipe.key.name}. "
+            f"The groove is a suggestion — check it against the track.", 9000)
+
+    def hits_to_library(self, recipe) -> None:
+        folder = QFileDialog.getExistingDirectory(
+            self, "Where should the extracted one-shots go?")
+        if not folder:
+            return
+        from ..audio.wavio import write_wav
+        out = os.path.join(folder, f"{recipe.name}_oneshots")
+        os.makedirs(out, exist_ok=True)
+        n = 0
+        for role, shots in recipe.hits.items():
+            for i, h in enumerate(shots):
+                a = h.audio
+                if a.ndim == 1:
+                    a = np.stack([a, a], axis=-1)
+                write_wav(os.path.join(out, f"{role}_{i + 1}.wav"), a)
+                n += 1
+        self.browser.library_panel.scan_folder(out)
+        self.browser.show_tab(1)
+        self.status.showMessage(f"Wrote {n} one-shots to {out} and indexed them",
+                                7000)
+
     # -- drag and drop -------------------------------------------------------
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
@@ -694,6 +764,17 @@ class MainWindow(QMainWindow):
         folders = [p for p in paths if os.path.isdir(p)]
         files = [p for p in paths if os.path.isfile(p)
                  and p.lower().endswith(AUDIO_EXTS_HINT)]
+
+        # a drop onto the Analyse or Studio tab means "use these here"
+        tab = self.stack.currentIndex()
+        if tab == 4 and files:
+            self.analyze.add_paths(files)
+            return
+        if tab == 5 and (files or folders):
+            self.studio.add_paths(files + folders)
+            self.status.showMessage(
+                f"Added {len(files) + len(folders)} source(s) to the studio", 4000)
+            return
 
         for folder in folders:
             self.browser.library_panel.scan_folder(folder)
@@ -763,7 +844,7 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Shortcuts", (
             "Space — play / pause\n"
             "Esc — all notes off\n"
-            "F1..F4 — Channel Rack, Piano Roll, Playlist, Mixer\n"
+            "F1..F6 — Channel Rack, Piano Roll, Playlist, Mixer, Analyse, Studio\n"
             "Ctrl+G — generate chords, arps, basslines, grooves\n"
             "Ctrl+S / Ctrl+O / Ctrl+N — save, open, new\n"
             "Ctrl+E — export WAV\n"

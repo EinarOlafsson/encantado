@@ -90,6 +90,68 @@ pack appears if one exists.
 **Drag and drop** — audio files become Sampler channels, folders get indexed,
 and a `.ecp` file opens as a project.
 
+## Analysing a track
+
+The **Analyse** tab takes audio you drop on it and tells you what is in it, then
+builds an editable project from what it heard.
+
+![Analyse](docs/analyse.png)
+
+Validated against this project's own renders, where the answer is known exactly:
+
+| | |
+|---|---|
+| Tempo | 6/6 exact, within 0.1% |
+| Beat grid | predictive tracking, does not drift over a full track |
+| Key | scale right 4–5 times in 6; correct tonic in the top two 5/6 |
+| Chords | recovers the reference progressions (Am F C G) |
+| Sections | intro / groove / build / drop / break from energy and kick presence |
+| Stems | drums, bass and melodic layers by harmonic-percussive separation |
+| One-shots | sliced at onsets; role classification is 7/7 on isolated hits |
+
+**What it will not do**, stated plainly: transcribe exactly which drum plays on
+which step of a finished, mastered mix. The kick's click bleeds into the snare
+band and basslines sit in the kick band; separating those needs a trained
+separator, which this does not ship. The groove is therefore shown as a
+per-band energy heat map with a confidence figure and written into an editable
+pattern for you to correct — measured against known references it gets the kick
+pattern right about a third of the time, and is often right but rotated to the
+wrong beat of the bar. Everything else above is reliable.
+
+## The generation studio
+
+The **Studio** tab learns from audio you give it and generates new material in
+the same voice — then lets you refine it by ear over successive rounds.
+
+![Studio](docs/studio.png)
+
+It trains a small convolutional VAE on spectrogram grains cut from your files.
+Be clear about what that means: it learns **timbre** — hits, stabs, textures —
+not arrangement. A handful of files cannot teach a model to write music, and
+nothing here pretends otherwise. The musical structure comes from the analysis
+engine and the sequencer; the model supplies the sound. It works best on a
+folder of one-shots or short loops, not on one finished track.
+
+The loop is the point. You never get a single render:
+
+1. **Learn** from your files (a few minutes on a GPU, in its own process so the
+   app stays responsive).
+2. **Generate** a population of candidates.
+3. **Keep** the ones going the right way, **Drop** the ones that are not, and
+   **Lock** any you want untouched.
+4. **Evolve** — the next generation is bred from what you kept and pushed away
+   from what you dropped. Locked ones carry through unchanged.
+5. Repeat until it is what you want, then send it **→ Rack** as a Sampler
+   channel, or export it as WAV.
+
+The four **Shape** sliders are directions the model actually found in your
+material — brightness, length, weight, noisiness — measured in standard
+deviations of your own data, and constrained to the part of the latent space
+the decoder responds to.
+
+Requires PyTorch with CUDA for reasonable training times. Without PyTorch the
+tab is disabled and everything else still works.
+
 ## Making it sound like the genre
 
 **Sidechain.** The pumping in modern house is ducking triggered by the kick.
@@ -117,6 +179,7 @@ and a noise riser.
 | Ctrl+S / Ctrl+O / Ctrl+N | Save, open, new |
 | Ctrl+E | Export WAV |
 | Ctrl+L | Add a folder of your own samples |
+| F5 / F6 | Analyse a track, Generation studio |
 | Ctrl+Z | Undo |
 | Z S X D C V G B H N J M | Play notes |
 | Q 2 W 3 E R 5 T 6 Y 7 U | Octave above |
@@ -134,6 +197,8 @@ code path used for playback, so the export matches what you heard.
 - `encantado/dsp/instruments.py`, `drums.py` — the voices
 - `encantado/dsp/effects.py` — reverb, delay, chorus, phaser, drive, dynamics, sidechain
 - `encantado/dsp/engine.py` — transport, step scheduler, buses, master chain
+- `encantado/analysis/` — tempo, key, chords, separation, song recipe
+- `encantado/ai/` — spectral codec, grain VAE, training, interactive evolution
 - `encantado/core/` — project model, music theory, sample library, pack sourcing
 - `encantado/presets/` — pattern builders and the style templates
 - `encantado/ui/` — the Qt interface
