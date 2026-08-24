@@ -270,18 +270,20 @@ class ChannelHeader(QWidget):
         self.meter = LevelMeter(Qt.Orientation.Horizontal)
         self.meter.setFixedWidth(30)
 
-        self.btn_pr = QPushButton("⌗")
-        self.btn_pr.setFixedSize(19, 19)
+        self.btn_pr = QPushButton("▤")
+        self.btn_pr.setObjectName("Mini")
+        self.btn_pr.setFixedSize(20, 20)
         self.btn_pr.setToolTip("Open piano roll")
         self.btn_pr.clicked.connect(lambda: self.pianoRollRequested.emit(self.cid))
         self.btn_m = QPushButton("M")
         self.btn_m.setCheckable(True)
-        self.btn_m.setFixedSize(19, 19)
-        self.btn_m.setObjectName("Danger")
+        self.btn_m.setFixedSize(20, 20)
+        self.btn_m.setObjectName("MiniDanger")
         self.btn_m.setToolTip("Mute")
         self.btn_s = QPushButton("S")
         self.btn_s.setCheckable(True)
-        self.btn_s.setFixedSize(19, 19)
+        self.btn_s.setObjectName("Mini")
+        self.btn_s.setFixedSize(20, 20)
         self.btn_s.setToolTip("Solo")
         self.btn_m.clicked.connect(self._mute)
         self.btn_s.clicked.connect(self._solo)
@@ -385,6 +387,7 @@ class ChannelRack(QWidget):
         self.grid_area.setSizeAdjustPolicy(
             QAbstractScrollArea.SizeAdjustPolicy.AdjustIgnored)
         gh = QWidget()
+        self.grid_host = gh
         gl = QVBoxLayout(gh)
         gl.setContentsMargins(0, 0, 0, 0)
         gl.setSpacing(0)
@@ -440,6 +443,9 @@ class ChannelRack(QWidget):
     def refresh(self) -> None:
         self.grid.refresh()
         self.ruler.refresh()
+        # a non-resizable scroll area uses the widget's own size, so the
+        # container has to be told to grow when the grid does
+        self.grid_host.adjustSize()
         for h in self.headers.values():
             h.sync()
 

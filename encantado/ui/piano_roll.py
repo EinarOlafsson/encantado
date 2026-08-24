@@ -60,10 +60,13 @@ class PianoKeys(QWidget):
             if pitch == self._down:
                 col = QColor(T.ACCENT)
             elif black:
-                col = QColor("#161b24")
+                col = QColor("#0f131a")
             else:
                 col = QColor("#c9d2e0")
-            p.fillRect(QRectF(0, y, KEY_W - 8, NOTE_H - 1), col)
+            width = (KEY_W - 24) if black else (KEY_W - 8)
+            p.fillRect(QRectF(0, y, KEY_W - 8, NOTE_H - 1),
+                       QColor("#aab4c4") if black else col)
+            p.fillRect(QRectF(0, y, width, NOTE_H - 1), col)
             if allowed and (pitch % 12) in allowed:
                 p.fillRect(QRectF(KEY_W - 7, y, 4, NOTE_H - 1),
                            QColor(T.ACCENT_3))
@@ -419,6 +422,7 @@ class PianoRoll(QWidget):
         self.area = QScrollArea()
         self.area.setWidgetResizable(False)
         host = QWidget()
+        self.host = host
         hl = QHBoxLayout(host)
         hl.setContentsMargins(0, 0, 0, 0)
         hl.setSpacing(0)
@@ -479,6 +483,7 @@ class PianoRoll(QWidget):
         self.ruler.refresh()
         self.keys.setFixedSize(self.keys.sizeHint())
         self.keys.update()
+        self.host.adjustSize()
 
     def set_playhead(self, step: int) -> None:
         if step != self.grid.playhead:

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "encantado"
+version = "0.1.0"
+description = "A pattern-based music studio for melodic house, progressive and electronica"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Einar Olafsson" }]
+dependencies = ["PyQt6>=6.5", "numpy>=1.24", "scipy>=1.10"]
+
+[project.scripts]
+encantado = "encantado.app:main"
+
+[tool.setuptools.packages.find]
+include = ["encantado*"]

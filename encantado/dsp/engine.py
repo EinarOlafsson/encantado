@@ -185,9 +185,9 @@ class Engine:
         spec = instrument_spec(ch.instrument)
         if spec is None:
             return
-        params = dict(ch.params)
-        if ch.instrument == "sampler":
-            params["_buffer"] = getattr(ch, "_buffer", None)
+        # the live dict, not a copy: turning a knob then changes the sound of
+        # notes that are already ringing, the way a hardware synth would
+        params = ch.params
         same = [lv for lv in self._voices if lv.cid == ch.id]
         poly = int(spec.get("poly", 8))
         if len(same) >= poly:
@@ -372,6 +372,28 @@ class Engine:
                 fx.reset()
             self._chan_fx.clear()
             self._fx_sig.clear()
+
+    def load_project(self, project: Project) -> None:
+        """Swap in a different project without disturbing the audio stream."""
+        with self.lock:
+            self.project = project
+            self.playing = False
+            self.pos = 0
+            self._step_cache = -1
+            self.mode = "pattern"
+            self.current_pattern = (project.patterns[0].id
+                                    if project.patterns else "")
+            self._voices.clear()
+            self._sidechains.clear()
+            self._chan_fx.clear()
+            self._fx_sig.clear()
+            self.meters = {}
+            for key, fx in (("reverb", self.reverb_bus), ("delay", self.delay_bus),
+                            ("djfilter", self.dj), ("eq", self.eq),
+                            ("comp", self.comp), ("limiter", self.limiter)):
+                fx.p.update(project.master.get(key) or {})
+                fx.reset()
+            self.delay_bus.set_tempo(project.bpm)
 
     # -- offline render ------------------------------------------------------
     def render_span(self, steps: int, tail: float = 3.0,

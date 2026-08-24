@@ -145,7 +145,19 @@ QMenu::separator {{ height: 1px; background: {BORDER}; margin: 5px 8px; }}
 QMenuBar {{ background: {BG_PANEL}; border-bottom: 1px solid {BORDER}; }}
 QMenuBar::item {{ padding: 6px 11px; background: transparent; }}
 QMenuBar::item:selected {{ background: {BG_PANEL_2}; }}
-QScrollArea {{ border: none; background: transparent; }}
+QScrollArea {{ border: none; background: {BG_PANEL}; }}
+QScrollArea > QWidget > QWidget {{ background: transparent; }}
+QScrollArea > QWidget {{ background: {BG_PANEL}; }}
+QPushButton#Mini, QPushButton#MiniDanger {{
+    padding: 0px; font-size: 10px; font-weight: 700;
+}}
+QPushButton#MiniDanger:checked {{
+    background: {ACCENT_2}; border-color: {ACCENT_2}; color: #2a0413;
+}}
+QFrame#BrowserRow {{
+    background: transparent; border: 1px solid {BORDER}; border-radius: 5px;
+}}
+QFrame#BrowserRow:hover {{ background: {BG_PANEL_2}; border-color: {BORDER_LIT}; }}
 QSlider::groove:horizontal {{ height: 4px; background: {BG_INPUT}; border-radius: 2px; }}
 QSlider::handle:horizontal {{
     background: {ACCENT}; width: 12px; margin: -5px 0; border-radius: 6px;
