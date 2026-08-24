@@ -1,19 +1,63 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "encantado"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A pattern-based music studio for melodic house, progressive and electronica"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Einar Olafsson" }]
-dependencies = ["PyQt6>=6.5", "numpy>=1.24", "scipy>=1.10"]
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Einar Olafsson", email = "einar.olafsson@gmail.com" }]
+keywords = [
+    "daw", "music", "sequencer", "synthesizer", "synthesis", "audio",
+    "house", "electronic-music", "step-sequencer", "piano-roll", "pyqt6",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications :: Qt",
+    "Environment :: MacOS X",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Artistic Software",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Sound/Audio :: Sound Synthesis",
+    "Topic :: Multimedia :: Sound/Audio :: Editors",
+]
+dependencies = [
+    "PyQt6>=6.5",
+    "numpy>=1.24",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+# The generation studio only. Everything else works without it, and the tab
+# says so rather than failing.
+ai = ["torch>=2.0"]
+dev = ["build>=1.0", "twine>=5.0", "pytest>=7.0"]
+
+[project.urls]
+Homepage = "https://github.com/EinarOlafsson/encantado"
+Repository = "https://github.com/EinarOlafsson/encantado"
+Issues = "https://github.com/EinarOlafsson/encantado/issues"
 
 [project.scripts]
 encantado = "encantado.app:main"
 
+[project.gui-scripts]
+encantado-gui = "encantado.app:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "encantado.__version__" }
+
 [tool.setuptools.packages.find]
 include = ["encantado*"]
+namespaces = false

@@ -7,7 +7,7 @@ playlist, mixer, and a complete synthesis and effects engine.
 Named for the shapeshifter of Amazonian folklore who turns up at the party and
 enchants everyone with music.
 
-![Channel rack](docs/channel-rack.png)
+![Channel rack](https://raw.githubusercontent.com/EinarOlafsson/encantado/main/docs/channel-rack.png)
 
 ## What it is
 
@@ -20,21 +20,40 @@ Six style templates each build a complete two-minute arrangement you can play
 immediately and then take apart: **Melodic House**, **Progressive Anthem**,
 **Piano House**, **Deep Organic**, **Tropical Deep** and **Cinematic Synth**.
 
-## Install and run
-
-Requires Python 3.10+ with `PyQt6`, `numpy` and `scipy`. Realtime audio uses
-Qt's own `QAudioSink`, so no extra audio library is needed.
+## Install
 
 ```bash
-pip install PyQt6 numpy scipy
-python -m encantado
+pip install encantado          # once published
+encantado                      # launches the app
 ```
 
-Or use the launcher, which pins the interpreter that has the dependencies:
+Add the generation studio, which needs PyTorch (large, and optional — every
+other feature works without it):
 
 ```bash
-./encantado.sh
+pip install "encantado[ai]"
 ```
+
+From a checkout:
+
+```bash
+git clone https://github.com/EinarOlafsson/encantado
+cd encantado
+pip install -e .               # editable install
+encantado
+```
+
+Or with no install at all, straight from the checkout:
+
+```bash
+python -m encantado            # from the repo root
+./encantado.sh                 # from anywhere; ENCANTADO_PYTHON pins an interpreter
+```
+
+**Requirements.** Python 3.10+, `PyQt6`, `numpy`, `scipy`. Realtime audio goes
+through Qt's own `QAudioSink`, so no extra audio library is needed. `ffmpeg` on
+your PATH is optional and only used to import non-WAV audio (AIFF, FLAC, MP3,
+OGG, M4A); WAV is decoded natively.
 
 ## The four views
 
@@ -46,7 +65,7 @@ set velocity. `▤` opens a channel in the piano roll.
 channels show behind yours as ghosts so you can write against the harmony. Rows
 outside the project key are shaded, and holding alt snaps to the key.
 
-![Piano roll](docs/piano-roll.png)
+![Piano roll](https://raw.githubusercontent.com/EinarOlafsson/encantado/main/docs/piano-roll.png)
 
 **Playlist** — the arrangement. Patterns become clips on a timeline. Click to
 place, drag to move, drag the right edge to repeat, right-click to erase.
@@ -55,7 +74,7 @@ place, drag to move, drag the right edge to repeat, right-click to erase.
 channel, plus the master chain: DJ filter, EQ, glue compressor, reverb, delay
 and limiter.
 
-![Mixer](docs/mixer.png)
+![Mixer](https://raw.githubusercontent.com/EinarOlafsson/encantado/main/docs/mixer.png)
 
 ## Using your own samples
 
@@ -72,7 +91,7 @@ already set.
 Nothing is copied or moved — the index stores paths, so your packs stay exactly
 where they are.
 
-![Library](docs/library.png)
+![Library](https://raw.githubusercontent.com/EinarOlafsson/encantado/main/docs/library.png)
 
 **Packs tab** — a directory of the legitimate storefronts this genre buys from,
 organised by what you need (melodic house drums, organic percussion, plucks,
@@ -80,7 +99,7 @@ pads, vocal chops, risers, Serum and Sylenth1 preset banks) plus a per-artist
 search. Click any entry and you get the vendors, ready-made search terms, and a
 *Locate folder on disk* button for packs you already own.
 
-![Packs](docs/pack-dialog.png)
+![Packs](https://raw.githubusercontent.com/EinarOlafsson/encantado/main/docs/pack-dialog.png)
 
 One thing stated plainly there and here: **no verified public list exists of the
 exact sample packs any of these artists used**, so Encantado does not invent
@@ -95,7 +114,7 @@ and a `.ecp` file opens as a project.
 The **Analyse** tab takes audio you drop on it and tells you what is in it, then
 builds an editable project from what it heard.
 
-![Analyse](docs/analyse.png)
+![Analyse](https://raw.githubusercontent.com/EinarOlafsson/encantado/main/docs/analyse.png)
 
 Validated against this project's own renders, where the answer is known exactly:
 
@@ -123,7 +142,7 @@ wrong beat of the bar. Everything else above is reliable.
 The **Studio** tab learns from audio you give it and generates new material in
 the same voice — then lets you refine it by ear over successive rounds.
 
-![Studio](docs/studio.png)
+![Studio](https://raw.githubusercontent.com/EinarOlafsson/encantado/main/docs/studio.png)
 
 It trains a small convolutional VAE on spectrogram grains cut from your files.
 Be clear about what that means: it learns **timbre** — hits, stabs, textures —
@@ -206,6 +225,18 @@ code path used for playback, so the export matches what you heard.
 The engine renders roughly 8× faster than realtime and uses about 12% CPU on a
 full arrangement, so there is headroom for a lot more channels than the
 templates use.
+
+## Building and publishing
+
+```bash
+pip install -e ".[dev]"
+python -m build                # writes dist/*.whl and dist/*.tar.gz
+twine check dist/*
+twine upload dist/*
+```
+
+The package is pure Python, so the wheel is a single `py3-none-any` artefact
+with no build step and no bundled data.
 
 ## Licence
 

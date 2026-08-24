@@ -11,3 +11,9 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# generated artefacts
+renders/
+*.pt
+*.ecm
+*.ecp

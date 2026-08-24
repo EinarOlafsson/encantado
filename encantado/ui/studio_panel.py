@@ -13,7 +13,8 @@ import sys
 import tempfile
 
 import numpy as np
-from PyQt6.QtCore import QObject, QProcess, Qt, QThread, pyqtSignal
+from PyQt6.QtCore import (QObject, QProcess, QProcessEnvironment, Qt,
+                          QThread, pyqtSignal)
 from PyQt6.QtGui import QColor, QPainter, QPen
 from PyQt6.QtWidgets import (QFileDialog, QFrame, QGridLayout, QHBoxLayout,
                              QLabel, QListWidget, QListWidgetItem, QMessageBox,
@@ -349,10 +350,16 @@ class StudioPanel(QWidget):
         self.proc.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self.proc.readyReadStandardOutput.connect(self._proc_output)
         self.proc.finished.connect(self._proc_finished)
-        # run from the directory that contains the package, so -m resolves
-        root = os.path.dirname(os.path.dirname(os.path.dirname(
+        # Put the directory containing the package on PYTHONPATH rather than
+        # relying on the working directory. That resolves `-m` both when running
+        # from a source checkout and when Encantado is installed as a package.
+        env = QProcessEnvironment.systemEnvironment()
+        pkg_parent = os.path.dirname(os.path.dirname(os.path.dirname(
             os.path.abspath(__file__))))
-        self.proc.setWorkingDirectory(root)
+        existing = env.value("PYTHONPATH", "")
+        env.insert("PYTHONPATH",
+                   pkg_parent + (os.pathsep + existing if existing else ""))
+        self.proc.setProcessEnvironment(env)
         self.proc.start(sys.executable,
                         ["-u", "-m", "encantado.ai.train_job", self._job_file])
 
